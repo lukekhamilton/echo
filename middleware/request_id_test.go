@@ -27,7 +27,25 @@ func TestRequestID(t *testing.T) {
 	rid = RequestIDWithConfig(RequestIDConfig{
 		Generator: func() string { return "customGenerator" },
 	})
+
 	h = rid(handler)
 	h(c)
 	assert.Equal(t, rec.Header().Get(echo.HeaderXRequestID), "customGenerator")
+
+	// Custom generator with context.
+	rid = RequestIDWithConfig(RequestIDConfig{
+		Generator: func() string { return "customGenerator" },
+	})
+	h = rid(handler)
+	h(c)
+	assert.Equal(t, rec.Header().Get(echo.HeaderXRequestID), "customGenerator")
+
+	// Custom generator with context.
+	rid = RequestIDWithConfigContextGenerator(RequestIDConfig{
+		//Generator: func() string { return "customGenerator" },
+		ContextGenerator: func(c echo.Context) string { return "AWSRequestID:123" },
+	})
+	h = rid(handler)
+	h(c)
+	assert.Equal(t, rec.Header().Get(echo.HeaderXRequestID), "AWSRequestID:123")
 }

@@ -14,6 +14,9 @@ type (
 		// Generator defines a function to generate an ID.
 		// Optional. Default value random.String(32).
 		Generator func() string
+
+		// ContextGenerator uses the context for generating an ID in the case of AWS lambda as an example
+		ContextGenerator func(c echo.Context) string
 	}
 )
 
@@ -59,6 +62,46 @@ func RequestIDWithConfig(config RequestIDConfig) echo.MiddlewareFunc {
 	}
 }
 
+// RequestIDWithConfig returns a X-Request-ID middleware with config.
+func RequestIDWithConfigContextGenerator(config RequestIDConfig) echo.MiddlewareFunc {
+	// Defaults
+	if config.Skipper == nil {
+		config.Skipper = DefaultRequestIDConfig.Skipper
+	}
+
+	config.Generator = nil
+
+	if config.ContextGenerator == nil {
+		// handle err?
+	}
+
+	//if config.ContextGenerator == nil {
+	//	config.Generator = contextGenerator(c echo.Context())
+	//}
+
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			if config.Skipper(c) {
+				return next(c)
+			}
+
+			req := c.Request()
+			res := c.Response()
+			rid := req.Header.Get(echo.HeaderXRequestID)
+			if rid == "" {
+				rid = config.ContextGenerator(c)
+			}
+			res.Header().Set(echo.HeaderXRequestID, rid)
+
+			return next(c)
+		}
+	}
+}
+
 func generator() string {
+	return random.String(32)
+}
+
+func contextGenerator(c echo.Context) string {
 	return random.String(32)
 }
